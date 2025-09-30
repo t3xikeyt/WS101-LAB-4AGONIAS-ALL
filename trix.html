@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recipe Organizer</title>
+</head>
+<body>
+    <h1>Recipe Organizer</h1>
+    
+    <div>
+        <h2>All Recipes</h2>
+        <p>Total recipes: <span id="total-count">0</span></p>
+        <ul id="recipe-list"></ul>
+    </div>
+    
+    <div>
+        <h2>Filter by Category</h2>
+        <select id="category-filter">
+            <option value="all">All Categories</option>
+        </select>
+        <button id="filter-btn">Filter Recipes</button>
+        <ul id="filtered-list"></ul>
+    </div>
+    
+    <div>
+        <h2>Longest Cooking Time</h2>
+        <button id="longest-time-btn">Find Recipe with Longest Cooking Time</button>
+        <div id="longest-time-result"></div>
+    </div>
+    
+    <div>
+        <h2>Recipes by Cooking Time Range</h2>
+        <button id="group-time-btn">Group by Cooking Time</button>
+        <div id="time-range-groups"></div>
+    </div>
+    
+    <div>
+        <h2>Add New Recipe</h2>
+        <div>
+            <input type="text" id="new-title" placeholder="Recipe Title">
+            <input type="text" id="new-ingredients" placeholder="Ingredients (comma separated)">
+            <input type="text" id="new-category" placeholder="Category">
+            <input type="number" id="new-time" placeholder="Cooking Time (minutes)">
+            <button id="add-recipe-btn">Add Recipe</button>
+        </div>
+    </div>
+    
+    <div>
+        <h2>Fetch New Recipes</h2>
+        <button id="fetch-recipes-btn">Fetch New Recipes (Async)</button>
+        <div id="fetch-status"></div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
