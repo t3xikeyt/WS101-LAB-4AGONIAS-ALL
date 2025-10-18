@@ -1,98 +1,120 @@
-// recipes.js
-const recipes = [
-  {
-    title: "Spaghetti Bolognese",
-    ingredients: ["spaghetti", "tomato", "beef", "onion", "carrot"],
-    category: "Dinner",
-    cookingTime: 45,
-  },
-  {
-    title: "Pancakes",
-    ingredients: ["flour", "egg", "milk", "butter"],
-    category: "Breakfast",
-    cookingTime: 20,
-  },
-  {
-    title: "Caesar Salad",
-    ingredients: ["lettuce", "croutons", "cheese", "chicken"],
-    category: "Lunch",
-    cookingTime: 15,
-  },
-  {
-    title: "Slow Cooker Chili",
-    ingredients: ["beans", "beef", "tomato", "chili powder"],
-    category: "Dinner",
-    cookingTime: 180,
-  },
-];
+// --- CONFIG ---
+const username = "todo-ui";
+const BASE_URL = `http://localhost:8080/users/${username}/todos`;
 
-// Count total recipes
-function countRecipes(recipes) {
-  return recipes.length;
+// --- DOM ELEMENTS ---
+const taskInput = document.getElementById('task');
+const dateInput = document.getElementById('date');
+const addBtn = document.getElementById('addBtn');
+const todoList = document.getElementById('todo-list');
+
+let todos = [];
+
+// --- LOAD TODOS FROM BACKEND ---
+async function loadTodos() {
+  try {
+    const res = await fetch(BASE_URL);
+    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+    todos = await res.json();
+    displayTodos();
+  } catch (error) {
+    console.error("Error loading todos:", error);
+  }
 }
 
-// Filter recipes by category
-function filterByCategory(recipes, category) {
-  return recipes.filter(r => r.category.toLowerCase() === category.toLowerCase());
-}
+// --- DISPLAY TODOS ON PAGE ---
+function displayTodos() {
+  todoList.innerHTML = '';
 
-// Find the recipe with the longest cooking time
-function findLongestCookingRecipe(recipes) {
-  if (recipes.length === 0) return null;
-  return recipes.reduce((max, r) => (r.cookingTime > max.cookingTime ? r : max), recipes[0]);
-}
-
-// Group recipes by cooking time ranges
-// quick: <= 30 mins, medium: 31 to 90 mins, long: > 90 mins
-function groupByCookingTime(recipes) {
-  const grouped = { quick: [], medium: [], long: [] };
-  recipes.forEach(r => {
-    if (r.cookingTime <= 30) grouped.quick.push(r);
-    else if (r.cookingTime <= 90) grouped.medium.push(r);
-    else grouped.long.push(r);
-  });
-  return grouped;
-}
-
-// Simulate fetching new recipes asynchronously
-function fetchNewRecipes() {
-  return new Promise(resolve => {
-    setTimeout(() => {
-      const newRecipes = [
-        {
-          title: "Avocado Toast",
-          ingredients: ["bread", "avocado", "lemon", "salt"],
-          category: "Breakfast",
-          cookingTime: 10,
-        },
-        {
-          title: "Grilled Cheese Sandwich",
-          ingredients: ["bread", "cheese", "butter"],
-          category: "Lunch",
-          cookingTime: 15,
-        },
-      ];
-      resolve(newRecipes);
-    }, 1500);
+  todos.forEach(todo => {
+    const li = document.createElement('li');
+    li.innerHTML = `
+      <span>
+        <span class="task">${todo.title || 'Untitled'}</span>
+        <span class="date">${todo.date || ''}</span>
+      </span>
+      <div class="actions">
+        <i class="fas fa-edit" onclick="editTodo(${todo.id}, '${escapeQuotes(todo.title)}', '${todo.date || ''}')"></i>
+        <i class="fas fa-trash" onclick="deleteTodo(${todo.id})"></i>
+      </div>
+    `;
+    todoList.appendChild(li);
   });
 }
 
-(async () => {
-  const output = document.getElementById("recipes-output");
+// --- ESCAPE SINGLE QUOTES IN STRINGS FOR INLINE JS ---
+function escapeQuotes(str = "") {
+  return str.replace(/'/g, "\\'");
+}
 
-  output.innerHTML += <p>Total recipes: ${countRecipes(recipes)}</p>;
+// --- ADD NEW TODO ---
+addBtn.addEventListener('click', async () => {
+  const title = taskInput.value.trim();
+  const date = dateInput.value;
 
-  output.innerHTML += <p>Dinner recipes: ${filterByCategory(recipes, "Dinner").map(r => r.title).join(", ")}</p>;
+  if (!title || !date) {
+    alert('Please enter both a task and a date!');
+    return;
+  }
 
-  const longest = findLongestCookingRecipe(recipes);
-  output.innerHTML += <p>Longest cooking recipe: ${longest.title} (${longest.cookingTime} mins)</p>;
+  try {
+    const response = await fetch(BASE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, date })
+    });
 
-  const grouped = groupByCookingTime(recipes);
-  output.innerHTML += <p>Quick recipes: ${grouped.quick.map(r => r.title).join(", ")}</p>;
-  output.innerHTML += <p>Medium recipes: ${grouped.medium.map(r => r.title).join(", ")}</p>;
-  output.innerHTML += <p>Long recipes: ${grouped.long.map(r => r.title).join(", ")}</p>;
+    if (!response.ok) throw new Error("Failed to add todo");
 
-  const newRecipes = await fetchNewRecipes();
-  output.innerHTML += <p>New recipes fetched asynchronously:</p>;
-  output.innerHTML += <ul>${newRecipes.map(r => `<li>${r.title} (${r.cookingTime} mins)</li>).join("")}</ul>`;
-})();
+    const data = await response.json();
+    console.log("Added todo:", data);
+
+    taskInput.value = '';
+    dateInput.value = '';
+    loadTodos();
+  } catch (error) {
+    console.error("Error adding todo:", error);
+    alert("Failed to add task. Please try again.");
+  }
+});
+
+// --- EDIT TODO ---
+async function editTodo(id, oldTitle, oldDate) {
+  const newTitle = prompt('Edit task:', oldTitle);
+  const newDate = prompt('Edit date (YYYY-MM-DD):', oldDate);
+
+  if (!newTitle || !newDate) return;
+
+  try {
+    const res = await fetch(`${BASE_URL}/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: newTitle, date: newDate })
+    });
+
+    if (!res.ok) throw new Error("Failed to update todo");
+
+    loadTodos();
+  } catch (error) {
+    console.error("Error editing todo:", error);
+    alert("Failed to update task. Please try again.");
+  }
+}
+
+// --- DELETE TODO ---
+async function deleteTodo(id) {
+  if (confirm('Are you sure you want to delete this schedule?')) {
+    try {
+      const res = await fetch(`${BASE_URL}/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error("Failed to delete todo");
+
+      loadTodos();
+    } catch (error) {
+      console.error("Error deleting todo:", error);
+      alert("Failed to delete task. Please try again.");
+    }
+  }
+}
+
+// --- INITIAL LOAD ---
+loadTodos();
